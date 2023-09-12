@@ -1,0 +1,143 @@
+﻿@page
+@model Nayai_Restaurant_Project.Pages.actionsModel
+@using MySql.Data.MySqlClient;
+@using System.Data;
+@using Newtonsoft.Json;
+
+@{
+}
+
+@{
+    Layout = null;
+    //Request.Query : รับinput จาก Client แบบ GET
+    var action = Request.Query["action"];
+    var result = "ajax error";
+
+    //ติดต่อฐานข้อมูล
+      MySqlConnection conn;
+	    string server = "localhost";
+	    string database = "nayai_restaurant";
+	    string uid = "root";
+	    string password = "12345678";
+	    string connectionString = "SERVER=" + server + ";" + "DATABASE=" +
+	    database + ";" + "UID=" + uid + ";" + "PASSWORD=" + password + ";SSL Mode=None;";
+	    conn = new MySqlConnection(connectionString);
+	    try
+	    {
+    	    conn.Open();
+	    }
+	    catch (Exception ex)
+	    {
+        @Html.Raw("มีปัญหาการเชื่อมต่อฐานข้อมูล")
+        return;
+    }
+
+    if (action =="insert")
+    {
+        var CategoryID = Request.Query["CategoryID"];
+        var Categoryname = Request.Query["Categoryname"];
+        var FoodID  = Request.Query["FoodID"];
+        var Foodname = Request.Query["Foodname"];
+        var Price  = Request.Query["Price"];
+
+        string sqlCmd = "INSERT INTO menus VALUES(@p1, @p2, @p3, @p4, @p5)";
+        MySqlCommand cmd = new MySqlCommand(sqlCmd, conn);
+        cmd.Parameters.AddWithValue("@p1", CategoryID);
+        cmd.Parameters.AddWithValue("@p2", Categoryname);
+        cmd.Parameters.AddWithValue("@p3", FoodID);
+        cmd.Parameters.AddWithValue("@p4", Foodname );
+        cmd.Parameters.AddWithValue("@p5", Price);
+
+        cmd.ExecuteNonQuery();
+
+        //ทำการเพิ่มข้อมูลไปยังฐานข้อมูล
+        result = "ajax insert success" + " "
+               + CategoryID + " "
+               + Categoryname + " "
+               + FoodID + " "
+               + Foodname + " "
+               + Price + " ";
+
+    }else if (action =="update")
+    {
+        var CategoryID = Request.Query["CategoryID"];
+        var Categoryname = Request.Query["Categoryname"];
+        var FoodID  = Request.Query["FoodID"];
+        var Foodname = Request.Query["Foodname"];
+        var Price  = Request.Query["Price"];
+
+        string sqlCmd = "UPDATE menus "
+                      + " SET Categoryname = @p2, "
+                      + " FoodID = @p3, "
+                      + " Foodname = @p4, "
+                      + " Price = @p5 "
+                      + " WHERE CategoryID = @p1";
+        MySqlCommand cmd = new MySqlCommand(sqlCmd, conn);
+        cmd.Parameters.AddWithValue("@p1", CategoryID);
+        cmd.Parameters.AddWithValue("@p2", Categoryname);
+        cmd.Parameters.AddWithValue("@p3", FoodID);
+        cmd.Parameters.AddWithValue("@p4", Foodname);
+        cmd.Parameters.AddWithValue("@p5", Price);
+
+        cmd.ExecuteNonQuery();
+
+
+        result = "ajax update success";
+    }else if (action =="delete")
+    {
+        var CategoryID = Request.Query["CategoryID"];
+
+        string sqlCmd = "DELETE FROM menus WHERE CategoryID = @pid";
+        MySqlCommand cmd = new MySqlCommand(sqlCmd, conn);
+        cmd.Parameters.AddWithValue("@pid", CategoryID);
+        cmd.ExecuteNonQuery();
+
+        result = "ajax delete success";
+    } 
+    else if (action =="select")
+    {
+        var query = Request.Query["query"];
+        string sqlCmd = "SELECT menus.* FROM menus "
+                      + " WHERE CategoryID LIKE @p1 "
+                      + "    OR Categoryname LIKE @p1"
+                      + "    OR FoodID LIKE @p1"
+                      + "    OR Foodname LIKE @p1"
+                      + "    OR Price LIKE @p1";
+
+        MySqlCommand cmd = new MySqlCommand(sqlCmd, conn);
+        cmd.Parameters.AddWithValue("@p1", "%" + query + "%");
+        MySqlDataReader reader = cmd.ExecuteReader();
+
+        DataTable dt = new DataTable();
+        dt.Load(reader);
+
+        string json_string = JsonConvert.SerializeObject(dt);
+        result = json_string;
+
+    }else if (action =="fetch_single")
+    {
+        //ทำการลบข้อมูลไปยังฐานข้อมูล
+        var query = Request.Query["query"];
+        //System.Diagnostics.Debug.WriteLine("XXXXD" + query); //เป็นการ debug ตัวแปรฝั่ง server
+        string sqlCmd = "SELECT * FROM menus "
+                      + " WHERE CategoryID = @p1 ";
+
+	    MySqlCommand cmd = new MySqlCommand(sqlCmd, conn);
+	    cmd.Parameters.AddWithValue("@p1", query );
+	    MySqlDataReader reader = cmd.ExecuteReader();
+
+        DataTable dt = new DataTable();
+        dt.Load(reader);
+
+        string json_string = JsonConvert.SerializeObject(dt);
+        result = json_string;
+
+    }
+    else
+    {
+        result = "unknow action";
+    }
+
+}
+@Html.Raw(result)
+
